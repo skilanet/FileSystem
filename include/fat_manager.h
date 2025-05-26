@@ -11,30 +11,28 @@
 
 
 class FATManager {
-    FATManager(VolumeManager& vol_manager);
+public:
+    explicit FATManager(VolumeManager& vol_manager);
     // инициализирует FAT
-    bool initialize_and_flush();
+    bool initialize_and_flush(const FileSystem::Header& header);
 
     // загружает FAT с диска
-    bool load();
+    bool load(const FileSystem::Header& header);
 
     // получение значения записи FAT
-    std::optional<uint32_t> get_entry(uint32_t cluster_idx) const;
+    [[nodiscard]] std::optional<uint32_t> get_entry(uint32_t cluster_idx) const;
 
     // устанавливает значение записи FAT и записывает на диск
-    bool set_entry(uint32_t cluster_idx, uint32_t entry_idx);
+    bool set_entry(uint32_t cluster_idx, uint32_t value);
 
     // для указанного кластера возвращает всю цепочку кластеров
-    std::list<uint32_t> get_cluster_chain(uint32_t start_cluster) const;
+    [[nodiscard]] std::list<uint32_t> get_cluster_chain(uint32_t start_cluster) const;
 
     // освобождает цепочку кластеров начиная со start_cluster
     bool free_chain(uint32_t start_cluster);
 
     // добавляет кластер в цепочку кластеров
     bool append_to_chain(uint32_t last_cluster_in_chain, uint32_t new_cluster_idx);
-
-    // начинает новую цепочку кластеров
-    bool start_new_chain(uint32_t new_cluster_idx);
 private:
     VolumeManager& vol_manager_; // ссылка на менеджер томов
     std::vector<uint32_t> fat_table_; // копия fat в памяти
@@ -45,9 +43,7 @@ private:
     // чтение fat с диска
     bool read_fat_from_disk();
     // запись fat на диск
-    bool write_fat_to_disk();
-    // запись определённого кластера на диск
-    bool flush_fat_cluster_containing_entry(uint32_t entry_idx);
+    [[nodiscard]] bool write_fat_to_disk() const;
 };
 
 
