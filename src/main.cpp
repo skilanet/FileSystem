@@ -1,6 +1,6 @@
 #include "fs_core.h"
 #include "output.h"
-#include <iostream>
+#include <iomanip>
 #include <string>
 #include <vector>
 #include <sstream>
@@ -8,7 +8,7 @@
 #include <algorithm>
 
 // Вспомогательная функция для разделения строки на вектор строк
-std::vector<std::string> parseInput(const std::string& input) {
+std::vector<std::string> parseInput(const std::string &input) {
     std::vector<std::string> tokens;
     std::stringstream ss(input);
     std::string token;
@@ -25,7 +25,8 @@ void printShellHelp() {
     std::cout << "  mount <volume_file>                   - Mounts an existing volume.\n";
     std::cout << "  unmount                               - Unmounts the current volume.\n";
     std::cout << "  info                                  - Shows current volume superblock info (requires mount).\n";
-    std::cout << "  ls [fs_path]                          - Lists directory contents (default: root '/'). Requires mount.\n";
+    std::cout <<
+            "  ls [fs_path]                          - Lists directory contents (default: root '/'). Requires mount.\n";
     std::cout << "  mkdir <fs_dir_path>                   - Creates a directory. Requires mount.\n";
     std::cout << "  rmdir <fs_dir_path>                   - Removes an empty directory. Requires mount.\n";
     std::cout << "  create <fs_file_path>                 - Creates an empty file (or truncates). Requires mount.\n";
@@ -42,14 +43,14 @@ void printShellHelp() {
 }
 
 // Функция копирования с хоста в ФС
-bool copyHostToFsShell(FileSystemCore& fs, const std::vector<std::string>& args) {
+bool copyHostToFsShell(FileSystemCore &fs, const std::vector<std::string> &args) {
     if (args.size() < 3) {
         std::cerr << "Usage: cp_to_fs <host_src_file> <fs_dest_path>\n";
         return false;
     }
 
-    const std::string& host_src_path = args[1];
-    const std::string& fs_dest_path = args[2];
+    const std::string &host_src_path = args[1];
+    const std::string &fs_dest_path = args[2];
 
     std::ifstream host_file(host_src_path, std::ios::binary | std::ios::ate);
     if (!host_file.is_open()) {
@@ -87,14 +88,14 @@ bool copyHostToFsShell(FileSystemCore& fs, const std::vector<std::string>& args)
 }
 
 // Функция копирования из ФС на хост
-bool copyFsToHostShell(FileSystemCore& fs, const std::vector<std::string>& args) {
+bool copyFsToHostShell(FileSystemCore &fs, const std::vector<std::string> &args) {
     if (args.size() < 3) {
         std::cerr << "Usage: cp_from_fs <fs_src_path> <host_dest_file>\n";
         return false;
     }
 
-    const std::string& fs_src_path = args[1];
-    const std::string& host_dest_path = args[2];
+    const std::string &fs_src_path = args[1];
+    const std::string &host_dest_path = args[2];
 
     auto handle_opt = fs.open_file(fs_src_path, "r");
     if (!handle_opt) {
@@ -138,7 +139,7 @@ bool copyFsToHostShell(FileSystemCore& fs, const std::vector<std::string>& args)
 }
 
 // Функция для сборки аргументов в одну строку (для команд write/append)
-std::string collectTextFromArgs(const std::vector<std::string>& args, size_t start_index) {
+std::string collectTextFromArgs(const std::vector<std::string> &args, size_t start_index) {
     std::string text;
     if (args.size() > start_index) {
         // Проверяем, начинается ли текст с кавычки
@@ -160,7 +161,7 @@ std::string collectTextFromArgs(const std::vector<std::string>& args, size_t sta
     return text;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     FileSystemCore fs_core;
     std::string current_volume_file;
 
@@ -171,7 +172,8 @@ int main(int argc, char* argv[]) {
             current_volume_file = initial_volume;
             std::cout << "Volume '" << current_volume_file << "' auto-mounted.\n";
         } else {
-            std::cout << "Failed to auto-mount volume '" << initial_volume << "'. Please use 'format' or 'mount' command.\n";
+            std::cout << "Failed to auto-mount volume '" << initial_volume <<
+                    "'. Please use 'format' or 'mount' command.\n";
         }
     }
 
@@ -201,11 +203,9 @@ int main(int argc, char* argv[]) {
 
         if (command == "exit" || command == "quit") {
             break;
-        }
-        else if (command == "help") {
+        } else if (command == "help") {
             printShellHelp();
-        }
-        else if (command == "format") {
+        } else if (command == "format") {
             if (tokens.size() == 3) {
                 if (fs_core.isMounted() && tokens[1] == current_volume_file) {
                     std::cout << "Cannot format currently mounted volume. Unmount first.\n";
@@ -219,15 +219,14 @@ int main(int argc, char* argv[]) {
                         } else {
                             std::cout << "Failed to format volume '" << tokens[1] << "'.\n";
                         }
-                    } catch (const std::exception& e) {
+                    } catch (const std::exception &e) {
                         std::cerr << "Error: Invalid size_MB value: " << tokens[2] << ". " << e.what() << std::endl;
                     }
                 }
             } else {
                 std::cout << "Usage: format <volume_file> <size_MB>\n";
             }
-        }
-        else if (command == "mount") {
+        } else if (command == "mount") {
             if (tokens.size() == 2) {
                 if (fs_core.isMounted()) {
                     fs_core.unmount();
@@ -242,8 +241,7 @@ int main(int argc, char* argv[]) {
             } else {
                 std::cout << "Usage: mount <volume_file>\n";
             }
-        }
-        else if (command == "unmount") {
+        } else if (command == "unmount") {
             if (fs_core.isMounted()) {
                 fs_core.unmount();
                 current_volume_file.clear();
@@ -256,9 +254,8 @@ int main(int argc, char* argv[]) {
         else if (!fs_core.isMounted()) {
             std::cout << "No volume mounted. Mount a volume first or format a new one.\n";
             std::cout << "Available commands: format, mount, help, exit.\n";
-        }
-        else if (command == "info") {
-            const auto& sb = fs_core.get_header();
+        } else if (command == "info") {
+            const auto &sb = fs_core.get_header();
             std::cout << "--- Superblock Info for " << current_volume_file << " ---\n";
             std::cout << "Signature:         " << std::string(sb.signature, strnlen(sb.signature, 16)) << "\n";
             std::cout << "Volume Size (B):   " << sb.volume_size_bytes << "\n";
@@ -272,25 +269,34 @@ int main(int argc, char* argv[]) {
             std::cout << "Bitmap Start:      " << sb.bitmap_start_cluster << "\n";
             std::cout << "Bitmap Size:       " << sb.bitmap_size_cluster << "\n";
             std::cout << "-------------------------------\n";
-        }
-        else if (command == "ls") {
-            std::string fs_path = (tokens.size() > 1) ? tokens[1] : "/";
+        } else if (command == "ls") {
+            std::string fs_path = tokens.size() > 1 ? tokens[1] : "/";
             std::vector<FileSystem::DirectoryEntry> entries = fs_core.list_directory(fs_path);
 
             if (entries.empty() && fs_path != "/") {
                 std::cout << "(Directory '" << fs_path << "' is empty or does not exist)\n";
             }
 
+
+
+            size_t max_filename_length = 0;
             for (const auto& entry : entries) {
-                std::cout << (entry.type == FileSystem::EntityType::DIRECTORY ? "D" : "F") << " ";
-                std::cout.width(FileSystem::MAX_FILE_NAME + 1);
-                std::cout << std::left << std::string(entry.name.data(), strnlen(entry.name.data(), FileSystem::MAX_FILE_NAME));
-                std::cout.width(10);
-                std::cout << std::right << entry.file_size_bytes << " B";
-                std::cout << "  (Cl: " << entry.first_cluster << ")" << std::endl;
+                size_t name_length = strnlen(entry.name.data(), FileSystem::MAX_FILE_NAME);
+                if (name_length > max_filename_length) {
+                    max_filename_length = name_length;
+                }
             }
-        }
-        else if (command == "mkdir") {
+
+            for (const auto& entry : entries) {
+                char type_char = (entry.type == FileSystem::EntityType::DIRECTORY) ? 'D' : 'F';
+                std::string filename(entry.name.data(), strnlen(entry.name.data(), FileSystem::MAX_FILE_NAME));
+
+                std::cout << type_char << " "
+                          << std::left << std::setw(static_cast<int>(max_filename_length)) << filename << " "
+                          << std::right << std::setw(10) << entry.file_size_bytes << " B"
+                          << std::setw(7) << "(Cl: " << entry.first_cluster << ")" << std::endl;
+            }
+        } else if (command == "mkdir") {
             if (tokens.size() == 2) {
                 if (fs_core.create_directory(tokens[1])) {
                     std::cout << "Directory '" << tokens[1] << "' created.\n";
@@ -300,8 +306,7 @@ int main(int argc, char* argv[]) {
             } else {
                 std::cout << "Usage: mkdir <fs_dir_path>\n";
             }
-        }
-        else if (command == "rmdir") {
+        } else if (command == "rmdir") {
             if (tokens.size() == 2) {
                 if (fs_core.remove_directory(tokens[1])) {
                     std::cout << "Directory '" << tokens[1] << "' removed.\n";
@@ -311,8 +316,7 @@ int main(int argc, char* argv[]) {
             } else {
                 std::cout << "Usage: rmdir <fs_dir_path>\n";
             }
-        }
-        else if (command == "create") {
+        } else if (command == "create") {
             if (tokens.size() == 2) {
                 auto handle = fs_core.open_file(tokens[1], "w");
                 if (handle) {
@@ -324,8 +328,7 @@ int main(int argc, char* argv[]) {
             } else {
                 std::cout << "Usage: create <fs_file_path>\n";
             }
-        }
-        else if (command == "rm") {
+        } else if (command == "rm") {
             // ИСПРАВЛЕНО: Используем remove_file вместо remove_directory
             if (tokens.size() == 2) {
                 if (fs_core.remove_file(tokens[1])) {
@@ -336,9 +339,9 @@ int main(int argc, char* argv[]) {
             } else {
                 std::cout << "Usage: rm <fs_file_path>\n";
             }
-        }
-        else if (command == "write" || command == "append") {
-            if (tokens.size() >= 3) { // команда, путь, текст
+        } else if (command == "write" || command == "append") {
+            if (tokens.size() >= 3) {
+                // команда, путь, текст
                 std::string mode = (command == "write") ? "w+" : "a+";
                 std::string text_to_write = collectTextFromArgs(tokens, 2);
 
@@ -358,8 +361,7 @@ int main(int argc, char* argv[]) {
             } else {
                 std::cout << "Usage: " << command << " <fs_file_path> \"text data\"\n";
             }
-        }
-        else if (command == "cat") {
+        } else if (command == "cat") {
             if (tokens.size() == 2) {
                 auto handle_opt = fs_core.open_file(tokens[1], "r");
                 if (!handle_opt) {
@@ -380,8 +382,7 @@ int main(int argc, char* argv[]) {
             } else {
                 std::cout << "Usage: cat <fs_file_path>\n";
             }
-        }
-        else if (command == "rename") {
+        } else if (command == "rename") {
             if (tokens.size() == 3) {
                 if (fs_core.rename_file(tokens[1], tokens[2])) {
                     std::cout << "Renamed '" << tokens[1] << "' to '" << tokens[2] << "'.\n";
@@ -391,14 +392,11 @@ int main(int argc, char* argv[]) {
             } else {
                 std::cout << "Usage: rename <old_fs_path> <new_fs_path>\n";
             }
-        }
-        else if (command == "cp_to_fs") {
+        } else if (command == "cp_to_fs") {
             copyHostToFsShell(fs_core, tokens);
-        }
-        else if (command == "cp_from_fs") {
+        } else if (command == "cp_from_fs") {
             copyFsToHostShell(fs_core, tokens);
-        }
-        else {
+        } else {
             std::cout << "Unknown command: '" << command << "'. Type 'help' for commands.\n";
         }
     }
