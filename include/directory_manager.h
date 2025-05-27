@@ -8,6 +8,8 @@
 #include "fat_manager.h"
 #include "volume_manager.h"
 #include "output.h"
+#include <iostream>
+#include <cstring>
 
 class DirectoryManager {
 public:
@@ -40,19 +42,19 @@ public:
     bool update_entry(uint32_t dir_start_cluster, const std::string &old_name,
                       const FileSystem::DirectoryEntry &updated_entry);
 
+    // функция для перезаписи всех записей каталога
+    [[nodiscard]] bool write_directory_cluster(uint32_t cluster_idx, const std::vector<FileSystem::DirectoryEntry>& entries_for_this_cluster) const;
+
 private:
     VolumeManager &vol_manager_; // ссылка на менеджер тома
     FATManager& fat_manager_; // ссылка на менеджер FAT
     BitmapManager& bitmap_manager_; // ссылка на менеджер битовой карты
 
     // чтение всех записей каталога из его цепочки кластеров
-    std::vector<FileSystem::DirectoryEntry> read_all_entries(uint32_t dir_start_cluster) const;
-
-    // функция для перезаписи всех записей каталога
-    bool write_directory_cluster(uint32_t cluster_idx, const std::vector<FileSystem::DirectoryEntry>& entries_for_this_cluster) const;
+    [[nodiscard]] std::vector<FileSystem::DirectoryEntry> read_all_entries(uint32_t dir_start_cluster) const;
 
     // функция для расширения каталога на один кластер
-    std::optional<uint32_t> extend_directory(uint32_t dir_last_cluster_idx) const;
+    [[nodiscard]] std::optional<uint32_t> extend_directory(uint32_t dir_last_cluster_idx) const;
 };
 
 #endif //DIRECTORY_MANAGER_H

@@ -6,6 +6,7 @@
 #define FAT_MANAGER_H
 
 #include <list>
+#include <cstring>
 
 #include "volume_manager.h"
 

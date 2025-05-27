@@ -81,7 +81,7 @@ namespace FileSystem {
         uint32_t offset_in_buffered_cluster; // смещение внутри буферизированного кластера
 
         bool is_open_to_write; // открыт ли файл для записи
-        bool modified; // изменён ли файл
+        bool modified{}; // изменён ли файл
 
         FileHandle(): handle_id(0), current_pos_bytes(0),
                       buffered_cluster_idx(MARKER_FAT_ENTRY_EOF), buffer_dirty(false),

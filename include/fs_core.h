@@ -19,6 +19,7 @@ class FileSystemCore {
 public:
     // ядро файловой системы
     FileSystemCore();
+
     ~FileSystemCore();
 
     bool mount(const std::string &volume_path); // монтирование существующего тома
@@ -37,16 +38,20 @@ public:
 
     bool seek(uint32_t handle_id, uint64_t offset, int whence);
 
-    bool remove_file(const std::string &path);
+    bool remove_file(const std::string &path) const;
 
     bool rename_file(const std::string &old_path, const std::string &new_path);
 
     // --- Операции с каталогами --- //
-    bool create_directory(const std::string &path);
+    bool create_directory(const std::string &path) const;
 
-    bool remove_directory(const std::string &path);
+    bool remove_directory(const std::string &path) const;
 
-    std::vector<FileSystem::DirectoryEntry> list_directory(const std::string &path);
+    std::vector<FileSystem::DirectoryEntry> list_directory(const std::string &path) const;
+
+    static std::string get_filename_from_path(const std::string &path); //разбор пути
+
+    FileSystem::Header get_header() const { return header_; }
 
 private:
     VolumeManager vol_manager_;
@@ -58,9 +63,7 @@ private:
     FileSystem::Header header_{};
 
     std::map<uint32_t, FileSystem::FileHandle> opened_files_table_; // таблица открытых файлов
-    uint32_t next_handle_id = 1; // ID следующего дескриптора
-    std::string get_filename_from_path(const std::string &path) const; //разбор пути
-    uint32_t get_directory_cluster_for_path(const std::string &path);
+    uint32_t next_handle_id = 1; // ID следующего дескриптор
 
     // загрузка кластера в буфер дескриптора файла
     bool load_cluster_info_buffer(FileSystem::FileHandle &handle, uint32_t cluster_to_load) const;
@@ -69,13 +72,13 @@ private:
     bool flush_cluster(FileSystem::FileHandle &handle) const;
 
     // выделение нового кластера для файла
-    std::optional<uint32_t> allocate_and_link_cluster(FileSystem::FileHandle &handle);
+    std::optional<uint32_t> allocate_and_link_cluster(FileSystem::FileHandle &handle) const;
 
-    bool update_directory_entry_for_file(const FileSystem::FileHandle &handle);
+    bool update_directory_entry_for_file(const FileSystem::FileHandle &handle) const;
 
     //  получить начальный кластер каталога
     uint32_t get_containing_directory_cluster(const
-        std::string &path_ignored_for_flat_fs);
+        std::string &path_ignored_for_flat_fs) const;
 
     struct OpenMode {
         bool read = false;
@@ -84,7 +87,8 @@ private:
         bool truncate = false;
         bool create_if_not_exists = false;
     };
-    std::optional<OpenMode> parse_mode(const std::string &mode);
+
+    static std::optional<OpenMode> parse_mode(const std::string &mode);
 };
 
 #endif //FS_CORE_H

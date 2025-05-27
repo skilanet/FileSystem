@@ -13,7 +13,7 @@
 
 class BitmapManager {
 public:
-    BitmapManager(VolumeManager& volume_manager);
+    explicit BitmapManager(VolumeManager& volume_manager);
     // инициализация битовой карты при форматировании
     bool initialize_and_flush(const FileSystem::Header& header);
     // загрузка битовой карты с диска в память
@@ -23,7 +23,7 @@ public:
     // помечает кластер как свободный
     bool free_cluster(uint32_t cluster_idx);
     // проверят свободен ли кластер
-    bool is_cluster_free(uint32_t cluster_idx) const;
+    [[nodiscard]] bool is_cluster_free(uint32_t cluster_idx) const;
 private:
     VolumeManager& volume_mgr_; // ссылка на менеджер тома
     std::vector<uint32_t> bitmap_data_; // копия битовой карты в памяти

@@ -8,6 +8,7 @@ bool DirectoryManager::initialize_root_directory(const FileSystem::Header &heade
     if (header.root_dir_size_clusters == FileSystem::MARKER_FAT_ENTRY_EOF || header.root_dir_start_cluster ==
         FileSystem::MARKER_FAT_ENTRY_FREE) {
         output::err(output::prefix::DIRECTORY_MANAGER) << "Invalid root directory start cluster" << std::endl;
+        return false;
     }
 
     if (const std::vector<FileSystem::DirectoryEntry> empty_entries(FileSystem::DIR_ENTRIES_PER_CLUSTER); !write_directory_cluster(header.root_dir_start_cluster, empty_entries)) {
@@ -27,6 +28,7 @@ std::vector<FileSystem::DirectoryEntry> DirectoryManager::read_all_entries(const
         FileSystem::MARKER_FAT_ENTRY_EOF) {
         output::warn(output::prefix::DIRECTORY_MANAGER_WARNING) << "Empty entries for cluster " << dir_start_cluster <<
                 std::endl;
+        return entries;
     }
     std::vector<char> buffer(vol_manager_.get_cluster_size());
     if (!vol_manager_.read_cluster(dir_start_cluster, buffer.data())) {
@@ -35,8 +37,9 @@ std::vector<FileSystem::DirectoryEntry> DirectoryManager::read_all_entries(const
         return entries;
     }
     entries.resize(FileSystem::DIR_ENTRIES_PER_CLUSTER);
-    std::memcpy(entries.data(), buffer.data(),
-                FileSystem::DIR_ENTRIES_PER_CLUSTER * sizeof(FileSystem::DirectoryEntry));
+    const size_t copy_size = std::min(buffer.size(),
+                           FileSystem::DIR_ENTRIES_PER_CLUSTER * sizeof(FileSystem::DirectoryEntry));
+    std::memcpy(entries.data(), buffer.data(), copy_size);
     return entries;
 }
 
@@ -56,7 +59,7 @@ bool DirectoryManager::write_directory_cluster(const uint32_t cluster_idx,
     std::memcpy(buffer.data(), entries_for_this_cluster.data(),
                 FileSystem::DIR_ENTRIES_PER_CLUSTER * sizeof(FileSystem::DirectoryEntry));
     std::memset(buffer.data() + FileSystem::DIR_ENTRIES_PER_CLUSTER * sizeof(FileSystem::DirectoryEntry), 0,
-                buffer.size() + FileSystem::DIR_ENTRIES_PER_CLUSTER * sizeof(FileSystem::DirectoryEntry));
+                buffer.size() - FileSystem::DIR_ENTRIES_PER_CLUSTER * sizeof(FileSystem::DirectoryEntry));
 
     if (!vol_manager_.write_cluster(cluster_idx, buffer.data())) {
         output::err(output::prefix::DIRECTORY_MANAGER_ERROR) << "Failed to write directory cluster " << cluster_idx <<
@@ -152,7 +155,7 @@ bool DirectoryManager::add_entry(const uint32_t dir_start_cluster, const FileSys
     for (const uint32_t cluster_idx: clusters_chain) {
         std::vector<FileSystem::DirectoryEntry> entries_in_cluster = read_all_entries(cluster_idx);
         for (uint32_t i = 0; i < entries_in_cluster.size(); ++i) {
-            if (entries_in_cluster[i].name[0] != FileSystem::ENTRY_NEVER_USED && entries_in_cluster[i].name[0] !=
+            if (entries_in_cluster[i].name[0] == FileSystem::ENTRY_NEVER_USED || entries_in_cluster[i].name[0] ==
                 FileSystem::ENTRY_DELETED) {
                 entries_in_cluster[i] = new_entry;
                 return write_directory_cluster(cluster_idx, entries_in_cluster);
@@ -213,7 +216,9 @@ bool DirectoryManager::remove_entry(const uint32_t dir_start_cluster, const std:
 
     std::vector<FileSystem::DirectoryEntry> entries_in_cluster = read_all_entries(location.dir_cluster_idx);
 
-    entries_in_cluster[location.entry_offset] = FileSystem::DirectoryEntry();
+    FileSystem::DirectoryEntry empty_entry{};
+    empty_entry.name[0] = FileSystem::ENTRY_DELETED;
+    entries_in_cluster[location.entry_offset] = empty_entry;
 
     return write_directory_cluster(location.dir_cluster_idx, entries_in_cluster);
 }
@@ -224,7 +229,7 @@ bool DirectoryManager::update_entry(uint32_t dir_start_cluster, const std::strin
     if (!location_opt) {
         output::err(output::prefix::DIRECTORY_MANAGER_ERROR) << "Entry '" << old_name << "' not found for update" <<
                 std::endl;
-        return true;
+        return false;
     }
 
     std::string new_name_str(updated_entry.name.data(), strnlen(updated_entry.name.data(), FileSystem::MAX_FILE_NAME));

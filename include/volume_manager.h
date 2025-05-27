@@ -26,8 +26,6 @@ public:
 
     const FileSystem::Header& get_header() const; // получить суперблок; константный доступ
 
-    FileSystem::Header& get_header_dangerously(); // получить суперблок; для изменения
-
     bool is_open() const; // проверка открыт ли том
 
     void close_volume(); // закрыть том

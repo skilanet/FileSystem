@@ -29,7 +29,8 @@ uint32_t VolumeManager::get_cluster_size() const {
     return header_cache_.cluster_size_bytes;
 }
 
-bool VolumeManager::create_and_format(const std::string &volume_path, const uint64_t volume_size_bytes, FileSystem::Header& out_header) {
+bool VolumeManager::create_and_format(const std::string &volume_path, const uint64_t volume_size_bytes,
+                                      FileSystem::Header &out_header) {
     if (is_open()) {
         close_volume();
     }
@@ -37,30 +38,31 @@ bool VolumeManager::create_and_format(const std::string &volume_path, const uint
     volume_stream_.open(current_volume_path_, std::ios::out | std::ios::binary | std::ios::trunc);
 
     if (!volume_stream_.is_open()) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Could not open file for format" << std::endl;
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Could not open file for format" << std::endl;
         return false;
     }
     if (volume_size_bytes == 0) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Volume size cannot be zero" << std::endl;
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Volume size cannot be zero" << std::endl;
         close_volume();
         return false;
     }
     const auto offset = FileSystem::try_to_streamoff(volume_size_bytes - 1);
     if (!offset) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "File is too large for this system" << std::endl;
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "File is too large for this system" << std::endl;
         return false;
     }
     volume_stream_.seekp(*offset);
     volume_stream_.write("\0", 1);
     if (!volume_stream_) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Could not set file size for: " << current_volume_path_ << std::endl;
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Could not set file size for: " << current_volume_path_ <<
+                std::endl;
         close_volume();
         return false;
     }
     volume_stream_.flush();
 
     if (!initialize_header(volume_size_bytes, header_cache_)) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Could not initialize header structure" << std::endl;
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Could not initialize header structure" << std::endl;
         close_volume();
         return false;
     }
@@ -68,7 +70,7 @@ bool VolumeManager::create_and_format(const std::string &volume_path, const uint
     out_header = header_cache_;
 
     if (!write_header_to_disk(header_cache_)) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Could not write header to disk" << std::endl;
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Could not write header to disk" << std::endl;
         close_volume();
         return false;
     }
@@ -85,12 +87,14 @@ bool VolumeManager::load_volume(const std::string &volume_path) {
     current_volume_path_ = volume_path;
     volume_stream_.open(current_volume_path_, std::ios::in | std::ios::out | std::ios::binary);
     if (!volume_stream_.is_open()) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Could not open volume file: " << current_volume_path_ << std::endl;
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Could not open volume file: " << current_volume_path_ <<
+                std::endl;
         return false;
     }
 
     if (!read_header_from_disk(header_cache_)) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Failed to read or validate header from: " << current_volume_path_ <<
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Failed to read or validate header from: " <<
+                current_volume_path_ <<
                 std::endl;
         close_volume();
         return false;
@@ -103,32 +107,34 @@ bool VolumeManager::load_volume(const std::string &volume_path) {
 
 bool VolumeManager::read_cluster(uint32_t cluster_idx, char *buffer) const {
     if (!is_open()) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Volume not open for reading cluster" << std::endl;
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Volume not open for reading cluster" << std::endl;
         return false;
     }
 
     if (cluster_idx >= header_cache_.total_clusters) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Cluster index " << cluster_idx << " out of bounds" << std::endl;
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Cluster index " << cluster_idx << " out of bounds" <<
+                std::endl;
         return false;
     }
 
     const auto cluster_offset = get_cluster_offset(cluster_idx);
     if (!cluster_offset) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Cluster offset is invalid" << std::endl;
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Cluster offset is invalid" << std::endl;
+        return false;
     }
     const auto offset = FileSystem::try_to_streamoff(*cluster_offset);
     if (!offset) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Offset is too large for this filesystem" << std::endl;
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Offset is too large for this filesystem" << std::endl;
         return false;
     }
     volume_stream_.seekg(*offset);
     if (!volume_stream_) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Seekg failed for cluster" << cluster_idx << std::endl;
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Seekg failed for cluster" << cluster_idx << std::endl;
         return false;
     }
     volume_stream_.read(buffer, header_cache_.cluster_size_bytes);
     if (volume_stream_.gcount() != static_cast<std::streamsize>(header_cache_.cluster_size_bytes)) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Read failed for cluster " << cluster_idx <<
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Read failed for cluster " << cluster_idx <<
                 ". Expected " << header_cache_.cluster_size_bytes << " got " << volume_stream_.gcount() << std::endl;
         if (!volume_stream_.eof()) volume_stream_.clear();
         return false;
@@ -138,26 +144,28 @@ bool VolumeManager::read_cluster(uint32_t cluster_idx, char *buffer) const {
 
 bool VolumeManager::write_cluster(uint32_t cluster_idx, const char *buffer) const {
     if (!is_open()) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Volume not open for writing cluster" << std::endl;
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Volume not open for writing cluster" << std::endl;
         return false;
     }
     if (cluster_idx >= header_cache_.total_clusters) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Cluster index " << cluster_idx << " out of bounds" << std::endl;
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Cluster index " << cluster_idx << " out of bounds" <<
+                std::endl;
         return false;
     }
-    const auto offset = FileSystem::try_to_streamoff(cluster_idx);
-    if (!offset) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Offset is too large for this filesystem" << std::endl;
+    const auto offset_opt = get_cluster_offset(cluster_idx);
+    if (!offset_opt) {
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Offset is too large for this filesystem" << std::endl;
         return false;
     }
+    const auto offset = FileSystem::try_to_streamoff(*offset_opt);
     volume_stream_.seekp(*offset);
     if (!volume_stream_) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Seekp failed for cluster" << cluster_idx << std::endl;
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Seekp failed for cluster" << cluster_idx << std::endl;
         return false;
     }
     volume_stream_.write(buffer, header_cache_.cluster_size_bytes);
     if (!volume_stream_) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Write failed for cluster" << cluster_idx << std::endl;
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Write failed for cluster" << cluster_idx << std::endl;
         return false;
     }
     volume_stream_.flush();
@@ -183,13 +191,14 @@ bool VolumeManager::initialize_header(const uint64_t volume_size_bytes, FileSyst
     header_to_fill.cluster_size_bytes = FileSystem::CLUSTER_SIZE_BYTES;
 
     if (header_to_fill.cluster_size_bytes == 0) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "CLUSTER_SIZE_BYTES is invalid" << std::endl;
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "CLUSTER_SIZE_BYTES is invalid" << std::endl;
         return false;
     }
     header_to_fill.total_clusters = volume_size_bytes / header_to_fill.cluster_size_bytes;
 
     if (header_to_fill.total_clusters < 10) {
-        output::warn(output::prefix::VOLUME_MANAGER_WARNING) << "Volume size is too small for minimum FS structures. Min 10 clusters need" <<
+        output::warn(output::prefix::VOLUME_MANAGER_WARNING) <<
+                "Volume size is too small for minimum FS structures. Min 10 clusters need" <<
                 std::endl;
         return false;
     }
@@ -213,8 +222,10 @@ bool VolumeManager::initialize_header(const uint64_t volume_size_bytes, FileSyst
     header_to_fill.data_start_cluster = header_to_fill.root_dir_start_cluster + header_to_fill.root_dir_size_clusters;
 
     if (header_to_fill.data_start_cluster >= header_to_fill.total_clusters) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Not enough space for data clusters after metadata" << std::endl;
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "" << header_to_fill.data_start_cluster << ", total_clusters: " <<
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Not enough space for data clusters after metadata" <<
+                std::endl;
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "" << header_to_fill.data_start_cluster <<
+                ", total_clusters: " <<
                 header_to_fill.total_clusters << std::endl;
         return false;
     }
@@ -223,7 +234,7 @@ bool VolumeManager::initialize_header(const uint64_t volume_size_bytes, FileSyst
 
 bool VolumeManager::write_header_to_disk(const FileSystem::Header &header_to_write) const {
     if (!volume_stream_.is_open()) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Stream not open for writing header" << std::endl;
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Stream not open for writing header" << std::endl;
         return false;
     }
     std::vector<char> cluster_buffer(header_to_write.cluster_size_bytes, 0);
@@ -231,12 +242,12 @@ bool VolumeManager::write_header_to_disk(const FileSystem::Header &header_to_wri
 
     volume_stream_.seekp(0);
     if (!volume_stream_) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Seekp to 0 for writing Header";
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Seekp to 0 for writing Header" << std::endl;
         return false;
     }
     volume_stream_.write(cluster_buffer.data(), header_to_write.cluster_size_bytes);
     if (!volume_stream_) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Writing header failed" << std::endl;
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Writing header failed" << std::endl;
         return false;
     }
     volume_stream_.flush();
@@ -245,25 +256,31 @@ bool VolumeManager::write_header_to_disk(const FileSystem::Header &header_to_wri
 
 bool VolumeManager::read_header_from_disk(FileSystem::Header &header_to_fill) const {
     if (!volume_stream_.is_open()) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Stream not open for reading header" << std::endl;
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Stream not open for reading header" << std::endl;
         return false;
     }
     std::vector<char> cluster_buffer(FileSystem::CLUSTER_SIZE_BYTES);
     volume_stream_.seekg(0);
     if (!volume_stream_) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Seekp to 0 failed for reading Header";
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Seekg to 0 failed for reading Header";
         return false;
     }
     volume_stream_.read(cluster_buffer.data(), FileSystem::CLUSTER_SIZE_BYTES);
     if (volume_stream_.gcount() != static_cast<std::streamsize>(FileSystem::CLUSTER_SIZE_BYTES)) {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Read header failed. Read " << volume_stream_.gcount() << " bytes" <<
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Read header failed. Read " << volume_stream_.gcount() <<
+                " bytes" <<
                 std::endl;
         return false;
     }
     std::memcpy(&header_to_fill, cluster_buffer.data(), sizeof(FileSystem::Header));
 
-    if (std::string(header_to_fill.signature) != "FileSystem v1.0.0") {
-        output::err(output::prefix::VOLUME_MANAGER_ERROR)<< "Mismatched cluster size. Expected "
+    if (std::string(header_to_fill.signature) != "FileSystem v1.0") {
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Invalid file system signature" << std::endl;
+        return false;
+    }
+
+    if (header_to_fill.cluster_size_bytes != FileSystem::CLUSTER_SIZE_BYTES) {
+        output::err(output::prefix::VOLUME_MANAGER_ERROR) << "Mismatched cluster size. Expected "
                 << FileSystem::CLUSTER_SIZE_BYTES << ", got " << header_to_fill.cluster_size_bytes << std::endl;
         return false;
     }
