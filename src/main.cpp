@@ -1,12 +1,13 @@
-#include "fs_core.h" // Главный класс нашей файловой системы
+#include "fs_core.h"
+#include "output.h"
 #include <iostream>
 #include <string>
 #include <vector>
-#include <sstream>   // Для разбора строки на слова
-#include <fstream>   // Для функций cp_to_fs / cp_from_fs
-#include <algorithm> // Для std::transform (приведение к нижнему регистру)
+#include <sstream>
+#include <fstream>
+#include <algorithm>
 
-// Вспомогательная функция для разделения строки на вектор строк (команда + аргументы)
+// Вспомогательная функция для разделения строки на вектор строк
 std::vector<std::string> parseInput(const std::string& input) {
     std::vector<std::string> tokens;
     std::stringstream ss(input);
@@ -40,13 +41,13 @@ void printShellHelp() {
     std::cout << std::endl;
 }
 
-
-// Функции копирования (остаются практически без изменений)
+// Функция копирования с хоста в ФС
 bool copyHostToFsShell(FileSystemCore& fs, const std::vector<std::string>& args) {
     if (args.size() < 3) {
         std::cerr << "Usage: cp_to_fs <host_src_file> <fs_dest_path>\n";
         return false;
     }
+
     const std::string& host_src_path = args[1];
     const std::string& fs_dest_path = args[2];
 
@@ -55,9 +56,11 @@ bool copyHostToFsShell(FileSystemCore& fs, const std::vector<std::string>& args)
         std::cerr << "Error: Cannot open host source file: " << host_src_path << std::endl;
         return false;
     }
+
     std::streamsize size = host_file.tellg();
     host_file.seekg(0, std::ios::beg);
     std::vector<char> buffer(static_cast<size_t>(size));
+
     if (!host_file.read(buffer.data(), size)) {
         std::cerr << "Error: Failed to read host source file: " << host_src_path << std::endl;
         host_file.close();
@@ -65,27 +68,31 @@ bool copyHostToFsShell(FileSystemCore& fs, const std::vector<std::string>& args)
     }
     host_file.close();
 
-    auto handle_opt = fs.open_file(fs_dest_path, "w+"); // Открываем для записи, создаем/обрезаем
+    auto handle_opt = fs.open_file(fs_dest_path, "w+");
     if (!handle_opt) {
         std::cerr << "Error: Cannot open/create destination file in FS: " << fs_dest_path << std::endl;
         return false;
     }
+
     uint32_t handle = *handle_opt;
     if (fs.write_file(handle, buffer.data(), buffer.size()) != static_cast<int64_t>(buffer.size())) {
         std::cerr << "Error: Failed to write all data to FS file: " << fs_dest_path << std::endl;
         fs.close_file(handle);
         return false;
     }
+
     fs.close_file(handle);
     std::cout << "Copied " << host_src_path << " to FS:" << fs_dest_path << std::endl;
     return true;
 }
 
+// Функция копирования из ФС на хост
 bool copyFsToHostShell(FileSystemCore& fs, const std::vector<std::string>& args) {
     if (args.size() < 3) {
         std::cerr << "Usage: cp_from_fs <fs_src_path> <host_dest_file>\n";
         return false;
     }
+
     const std::string& fs_src_path = args[1];
     const std::string& host_dest_path = args[2];
 
@@ -94,11 +101,13 @@ bool copyFsToHostShell(FileSystemCore& fs, const std::vector<std::string>& args)
         std::cerr << "Error: Cannot open source file in FS: " << fs_src_path << std::endl;
         return false;
     }
+
     uint32_t handle = *handle_opt;
 
     std::vector<char> file_content;
-    std::vector<char> read_buffer(FileSystem::CLUSTER_SIZE_BYTES); // Читаем блоками
+    std::vector<char> read_buffer(FileSystem::CLUSTER_SIZE_BYTES);
     int64_t bytes_read;
+
     while ((bytes_read = fs.read_file(handle, read_buffer.data(), read_buffer.size())) > 0) {
         file_content.insert(file_content.end(), read_buffer.data(), read_buffer.data() + bytes_read);
     }
@@ -114,6 +123,7 @@ bool copyFsToHostShell(FileSystemCore& fs, const std::vector<std::string>& args)
         std::cerr << "Error: Cannot open host destination file: " << host_dest_path << std::endl;
         return false;
     }
+
     if (!file_content.empty()) {
         if (!host_file.write(file_content.data(), file_content.size())) {
             std::cerr << "Error: Failed to write to host destination file: " << host_dest_path << std::endl;
@@ -121,6 +131,7 @@ bool copyFsToHostShell(FileSystemCore& fs, const std::vector<std::string>& args)
             return false;
         }
     }
+
     host_file.close();
     std::cout << "Copied FS:" << fs_src_path << " to " << host_dest_path << std::endl;
     return true;
@@ -140,21 +151,18 @@ std::string collectTextFromArgs(const std::vector<std::string>& args, size_t sta
             // Убираем последнюю кавычку, если она есть
             if (!text.empty() && text.back() == '"') {
                 text.pop_back();
-            } else {
-                 // Если начали с кавычки, но не закончили - возможно, ошибка ввода
-                 // или текст содержит кавычки внутри. Для простоты пока так.
             }
-        } else { // Если нет кавычек, берем только первый аргумент после пути
+        } else {
+            // Если нет кавычек, берем только первый аргумент после пути
             text = args[start_index];
         }
     }
     return text;
 }
 
-
 int main(int argc, char* argv[]) {
     FileSystemCore fs_core;
-    std::string current_volume_file; // Храним имя смонтированного файла
+    std::string current_volume_file;
 
     // Попытка автомонтирования, если файл тома передан как аргумент программе
     if (argc == 2) {
@@ -171,6 +179,7 @@ int main(int argc, char* argv[]) {
     std::cout << "SimpleFS Shell. Type 'help' for commands.\n";
 
     while (true) {
+        // Показываем приглашение с именем смонтированного тома
         if (fs_core.isMounted()) {
             std::cout << "[" << current_volume_file << "] > ";
         } else {
@@ -190,12 +199,13 @@ int main(int argc, char* argv[]) {
         // Приводим команду к нижнему регистру для удобства
         std::transform(command.begin(), command.end(), command.begin(), ::tolower);
 
-
         if (command == "exit" || command == "quit") {
             break;
-        } else if (command == "help") {
+        }
+        else if (command == "help") {
             printShellHelp();
-        } else if (command == "format") {
+        }
+        else if (command == "format") {
             if (tokens.size() == 3) {
                 if (fs_core.isMounted() && tokens[1] == current_volume_file) {
                     std::cout << "Cannot format currently mounted volume. Unmount first.\n";
@@ -216,10 +226,11 @@ int main(int argc, char* argv[]) {
             } else {
                 std::cout << "Usage: format <volume_file> <size_MB>\n";
             }
-        } else if (command == "mount") {
+        }
+        else if (command == "mount") {
             if (tokens.size() == 2) {
                 if (fs_core.isMounted()) {
-                    fs_core.unmount(); // Отмонтируем предыдущий, если был
+                    fs_core.unmount();
                     current_volume_file.clear();
                 }
                 if (fs_core.mount(tokens[1])) {
@@ -231,7 +242,8 @@ int main(int argc, char* argv[]) {
             } else {
                 std::cout << "Usage: mount <volume_file>\n";
             }
-        } else if (command == "unmount") {
+        }
+        else if (command == "unmount") {
             if (fs_core.isMounted()) {
                 fs_core.unmount();
                 current_volume_file.clear();
@@ -250,18 +262,25 @@ int main(int argc, char* argv[]) {
             std::cout << "--- Superblock Info for " << current_volume_file << " ---\n";
             std::cout << "Signature:         " << std::string(sb.signature, strnlen(sb.signature, 16)) << "\n";
             std::cout << "Volume Size (B):   " << sb.volume_size_bytes << "\n";
-            // ... (остальные поля суперблока, как в предыдущем main.cpp)
             std::cout << "Cluster Size (B):  " << sb.cluster_size_bytes << "\n";
             std::cout << "Total Clusters:    " << sb.total_clusters << "\n";
             std::cout << "Data Start Cl:     " << sb.data_start_cluster << "\n";
+            std::cout << "Root Dir Start:    " << sb.root_dir_start_cluster << "\n";
+            std::cout << "Root Dir Size:     " << sb.root_dir_size_clusters << "\n";
+            std::cout << "FAT Start:         " << sb.fat_start_cluster << "\n";
+            std::cout << "FAT Size:          " << sb.fat_size_clusters << "\n";
+            std::cout << "Bitmap Start:      " << sb.bitmap_start_cluster << "\n";
+            std::cout << "Bitmap Size:       " << sb.bitmap_size_cluster << "\n";
             std::cout << "-------------------------------\n";
-        } else if (command == "ls") { // ls [fs_path]
+        }
+        else if (command == "ls") {
             std::string fs_path = (tokens.size() > 1) ? tokens[1] : "/";
             std::vector<FileSystem::DirectoryEntry> entries = fs_core.list_directory(fs_path);
-            if (entries.empty() && fs_path != "/") { // Проверка, если каталог не найден или пуст
-                 // Упрощенная проверка. В реальной ФС нужна команда stat или более детальная информация от listDirectory
-                 std::cout << "(Directory '" << fs_path << "' is empty or does not exist)\n";
+
+            if (entries.empty() && fs_path != "/") {
+                std::cout << "(Directory '" << fs_path << "' is empty or does not exist)\n";
             }
+
             for (const auto& entry : entries) {
                 std::cout << (entry.type == FileSystem::EntityType::DIRECTORY ? "D" : "F") << " ";
                 std::cout.width(FileSystem::MAX_FILE_NAME + 1);
@@ -270,70 +289,113 @@ int main(int argc, char* argv[]) {
                 std::cout << std::right << entry.file_size_bytes << " B";
                 std::cout << "  (Cl: " << entry.first_cluster << ")" << std::endl;
             }
-        } else if (command == "mkdir") { // mkdir <fs_dir_path>
-             if (tokens.size() == 2) {
+        }
+        else if (command == "mkdir") {
+            if (tokens.size() == 2) {
                 if (fs_core.create_directory(tokens[1])) {
                     std::cout << "Directory '" << tokens[1] << "' created.\n";
-                } else { std::cout << "Failed to create directory '" << tokens[1] << "'.\n"; }
-            } else { std::cout << "Usage: mkdir <fs_dir_path>\n"; }
-        } else if (command == "rmdir") { // rmdir <fs_dir_path>
+                } else {
+                    std::cout << "Failed to create directory '" << tokens[1] << "'.\n";
+                }
+            } else {
+                std::cout << "Usage: mkdir <fs_dir_path>\n";
+            }
+        }
+        else if (command == "rmdir") {
             if (tokens.size() == 2) {
                 if (fs_core.remove_directory(tokens[1])) {
                     std::cout << "Directory '" << tokens[1] << "' removed.\n";
-                } else { std::cout << "Failed to remove directory '" << tokens[1] << "'.\n"; }
-            } else { std::cout << "Usage: rmdir <fs_dir_path>\n"; }
-        } else if (command == "create") { // create <fs_file_path>
+                } else {
+                    std::cout << "Failed to remove directory '" << tokens[1] << "'.\n";
+                }
+            } else {
+                std::cout << "Usage: rmdir <fs_dir_path>\n";
+            }
+        }
+        else if (command == "create") {
             if (tokens.size() == 2) {
                 auto handle = fs_core.open_file(tokens[1], "w");
-                if (handle) { fs_core.close_file(*handle); std::cout << "File '" << tokens[1] << "' created/truncated.\n"; }
-                else { std::cout << "Failed to create/truncate file '" << tokens[1] << "'.\n"; }
-            } else { std::cout << "Usage: create <fs_file_path>\n"; }
-        } else if (command == "rm") { // rm <fs_file_path>
+                if (handle) {
+                    fs_core.close_file(*handle);
+                    std::cout << "File '" << tokens[1] << "' created/truncated.\n";
+                } else {
+                    std::cout << "Failed to create/truncate file '" << tokens[1] << "'.\n";
+                }
+            } else {
+                std::cout << "Usage: create <fs_file_path>\n";
+            }
+        }
+        else if (command == "rm") {
+            // ИСПРАВЛЕНО: Используем remove_file вместо remove_directory
             if (tokens.size() == 2) {
-                if (fs_core.remove_directory(tokens[1])) { std::cout << "File '" << tokens[1] << "' removed.\n"; }
-                else { std::cout << "Failed to remove file '" << tokens[1] << "'.\n"; }
-            } else { std::cout << "Usage: rm <fs_file_path>\n"; }
-        } else if (command == "write" || command == "append") { // write <path> "text"
+                if (fs_core.remove_file(tokens[1])) {
+                    std::cout << "File '" << tokens[1] << "' removed.\n";
+                } else {
+                    std::cout << "Failed to remove file '" << tokens[1] << "'.\n";
+                }
+            } else {
+                std::cout << "Usage: rm <fs_file_path>\n";
+            }
+        }
+        else if (command == "write" || command == "append") {
             if (tokens.size() >= 3) { // команда, путь, текст
                 std::string mode = (command == "write") ? "w+" : "a+";
                 std::string text_to_write = collectTextFromArgs(tokens, 2);
 
                 auto handle_opt = fs_core.open_file(tokens[1], mode);
-                if (!handle_opt) { std::cout << "Failed to open file '" << tokens[1] << "' for " << command << ".\n"; }
-                else {
+                if (!handle_opt) {
+                    std::cout << "Failed to open file '" << tokens[1] << "' for " << command << ".\n";
+                } else {
                     uint32_t handle = *handle_opt;
                     int64_t written = fs_core.write_file(handle, text_to_write.c_str(), text_to_write.length());
                     if (written == static_cast<int64_t>(text_to_write.length())) {
                         std::cout << text_to_write.length() << " bytes " << command << "ed to '" << tokens[1] << "'.\n";
-                    } else { std::cout << "Failed to write all text (wrote " << written << ").\n"; }
+                    } else {
+                        std::cout << "Failed to write all text (wrote " << written << ").\n";
+                    }
                     fs_core.close_file(handle);
                 }
-            } else { std::cout << "Usage: " << command << " <fs_file_path> \"text data\"\n"; }
-        } else if (command == "cat") { // cat <fs_file_path>
+            } else {
+                std::cout << "Usage: " << command << " <fs_file_path> \"text data\"\n";
+            }
+        }
+        else if (command == "cat") {
             if (tokens.size() == 2) {
                 auto handle_opt = fs_core.open_file(tokens[1], "r");
-                if (!handle_opt) { std::cout << "Failed to open file '" << tokens[1] << "' for reading.\n"; }
-                else {
+                if (!handle_opt) {
+                    std::cout << "Failed to open file '" << tokens[1] << "' for reading.\n";
+                } else {
                     uint32_t handle = *handle_opt;
                     char buffer[256];
                     int64_t bytes_read;
                     while ((bytes_read = fs_core.read_file(handle, buffer, sizeof(buffer) - 1)) > 0) {
                         buffer[bytes_read] = '\0';
-                        std::cout << buffer;
+                        std::cout << buffer << std::endl;
                     }
-                    if (bytes_read < 0) std::cout << "\nError during read." << std::endl;
-                    // else std::cout << std::endl; // Не всегда нужен перевод строки
+                    if (bytes_read < 0) {
+                        std::cout << "\nError during read." << std::endl;
+                    }
                     fs_core.close_file(handle);
                 }
-            } else { std::cout << "Usage: cat <fs_file_path>\n"; }
-        } else if (command == "rename") { // rename <old> <new>
+            } else {
+                std::cout << "Usage: cat <fs_file_path>\n";
+            }
+        }
+        else if (command == "rename") {
             if (tokens.size() == 3) {
-                if(fs_core.rename_file(tokens[1], tokens[2])) { std::cout << "Renamed.\n";}
-                else {std::cout << "Rename failed.\n";}
-            } else {std::cout << "Usage: rename <old_fs_path> <new_fs_path>\n";}
-        } else if (command == "cp_to_fs") { // cp_to_fs <host_src> <fs_dest>
+                if (fs_core.rename_file(tokens[1], tokens[2])) {
+                    std::cout << "Renamed '" << tokens[1] << "' to '" << tokens[2] << "'.\n";
+                } else {
+                    std::cout << "Rename failed.\n";
+                }
+            } else {
+                std::cout << "Usage: rename <old_fs_path> <new_fs_path>\n";
+            }
+        }
+        else if (command == "cp_to_fs") {
             copyHostToFsShell(fs_core, tokens);
-        } else if (command == "cp_from_fs") { // cp_from_fs <fs_src> <host_dest>
+        }
+        else if (command == "cp_from_fs") {
             copyFsToHostShell(fs_core, tokens);
         }
         else {
@@ -344,6 +406,7 @@ int main(int argc, char* argv[]) {
     if (fs_core.isMounted()) {
         fs_core.unmount(); // Убедимся, что все отмонтировано при выходе
     }
+
     std::cout << "Exiting SimpleFS Shell.\n";
     return 0;
 }
