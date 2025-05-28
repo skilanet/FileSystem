@@ -6,35 +6,35 @@
 
 ### Основные функции
 
-**initialize_and_flush(header)**
+### `initialize_and_flush(header)`
 
 - Инициализирует битовую карту при форматировании тома
 - Помечает системные кластеры (заголовок, FAT, битовая карта, корневой каталог) как занятые
 
-**load(header)**
+### `load(header)`
 
 - Загружает битовую карту с диска в память при монтировании тома
 
-**find_and_allocate_free_cluster()**
+### `find_and_allocate_free_cluster()`
 
 - Ищет первый свободный кластер начиная с области данных
 - Автоматически помечает найденный кластер как занятый и сохраняет изменения на диск
 
-**free_cluster(cluster_idx)**
+### `free_cluster(cluster_idx)`
 
 - Освобождает указанный кластер, помечая его как свободный
 - Проверяет, что освобождаемый кластер не является системным
 
-**is_cluster_free(cluster_idx)**
+### `is_cluster_free(cluster_idx)`
 
 - Проверяет, свободен ли указанный кластер
 
 ### Внутренние методы
 
-**set_bit/clear_bit/get_bit**
+### `set_bit/clear_bit/get_bit`
 
 - Низкоуровневые операции с битами для управления состоянием кластеров
 
-**read_bitmap_from_disk/write_bitmap_to_disk**
+### `read_bitmap_from_disk/write_bitmap_to_disk`
 
 - Чтение и запись битовой карты на диск

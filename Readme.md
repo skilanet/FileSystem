@@ -4,6 +4,7 @@
 
 ## Структура проекта
 
+- [Ядро файловой системы (FileSystemCore)](documentation/FileSystemCoreReadme.md) - высокоуровневый API
 - [Менеджер томов (VolumeManager)](documentation/VolumeReadme.md) — управление файлом-контейнером
 - [Менеджер битовой карты (BitmapManager)](documentation/BitmapReadme.md) — отслеживание свободных кластеров
 - [Менеджер FAT (FATManager)](documentation/FATReadme.md) — управление цепочками кластеров

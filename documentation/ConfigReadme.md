@@ -6,52 +6,53 @@
 
 ### Константы
 
-**CLUSTER_SIZE_BYTES = 4096**
+### `CLUSTER_SIZE_BYTES = 4096`
 
 - Размер одного кластера в байтах
 
-**MAX_FILE_NAME = 255**
+### `MAX_FILE_NAME = 255`
 
 - Максимальная длина имени файла
 
-**ROOT_DIRECTORY_CLUSTER_COUNT = 1**
+### `ROOT_DIRECTORY_CLUSTER_COUNT = 1`
 
 - Начальный размер корневого каталога в кластерах
 
 ### Маркеры
 
-**ENTRY_NEVER_USED = 0x00**
+### `ENTRY_NEVER_USED = 0x00`
 
 - Запись каталога никогда не использовалась
 
-**ENTRY_DELETED = 0xE5**
+### `ENTRY_DELETED = 0xE5`
 
 - Запись была удалена
 
-**MARKER_FAT_ENTRY_FREE = 0x00000000**
+### `MARKER_FAT_ENTRY_FREE = 0x00000000`
 
 - Кластер свободен
 
-**MARKER_FAT_ENTRY_EOF = 0xFFFFFFFF**
+### `MARKER_FAT_ENTRY_EOF = 0xFFFFFFFF`
 
 - Конец цепочки кластеров
 
 ### Структуры
 
-**Header (Суперблок)**
+### `Header (Суперблок)`
 
 - Сигнатура файловой системы
 - Размеры тома и кластера
 - Расположение системных областей (битовая карта, FAT, корневой каталог)
 
-**DirectoryEntry**
+### `DirectoryEntry`
 
 - Имя файла/каталога
 - Тип (файл или каталог)
 - Первый кластер данных
 - Размер файла в байтах
 
-**FileHandle**
+### `FileHandle`
+
 
 - Дескриптор открытого файла
 - Буфер для операций чтения/записи
@@ -59,10 +60,10 @@
 
 ### Вспомогательные функции
 
-**DIR_ENTRIES_PER_CLUSTER**
+### `DIR_ENTRIES_PER_CLUSTER`
 
 - Вычисляет количество записей каталога в одном кластере
 
-**try_to_streamoff**
+### `try_to_streamoff`
 
 - Безопасное преобразование uint64_t в streamoff для файловых операций

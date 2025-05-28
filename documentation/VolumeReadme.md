@@ -6,32 +6,33 @@
 
 ### Основные функции
 
-**create_and_format(volume_path, size_bytes, out_header)**
+### `create_and_format(volume_path, size_bytes, out_header)`
 
 - Создает новый файл-том указанного размера
 - Инициализирует суперблок с метаданными файловой системы
 - Рассчитывает размеры и расположение системных областей
 
-**load_volume(volume_path)**
+### `load_volume(volume_path)`
 
 - Открывает существующий том для работы
 - Читает и проверяет суперблок на корректность
 
-**read_cluster(cluster_idx, buffer)**
+### `read_cluster(cluster_idx, buffer)`
 
 - Читает данные одного кластера в буфер
 - Проверяет границы и корректность индекса
 
-**write_cluster(cluster_idx, buffer)**
+### `write_cluster(cluster_idx, buffer)`
 
 - Записывает данные из буфера в указанный кластер
 - Автоматически сбрасывает буферы на диск
 
-**get_header()**
+### `get_header()`
 
 - Возвращает копию суперблока с метаданными тома
 
-**close_volume()**
+### `close_volume()`
+
 
 - Закрывает файл тома и очищает внутреннее состояние
 

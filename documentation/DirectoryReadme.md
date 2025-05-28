@@ -6,37 +6,38 @@
 
 ### Основные функции
 
-**initialize_root_directory(header)**
+### `initialize_root_directory(header)`
 
 - Создает пустой корневой каталог при форматировании
 - Заполняет первый кластер каталога пустыми записями
 
-**get_directories_list(dir_start_cluster)**
+### `get_directories_list(dir_start_cluster)`
 
 - Читает все записи из указанного каталога
 - Фильтрует удаленные и неиспользованные записи
 
-**find_entry(dir_start_cluster, name)**
+### `find_entry(dir_start_cluster, name)`
 
 - Ищет файл или каталог по имени
 - Возвращает копию записи, если найдена
 
-**get_entry_location(dir_start_cluster, name)**
+### `get_entry_location(dir_start_cluster, name)`
 
 - Находит точное расположение записи (кластер и смещение)
 - Используется для операций обновления и удаления
 
-**add_entry(dir_start_cluster, new_entry)**
+### `add_entry(dir_start_cluster, new_entry)`
 
 - Добавляет новую запись в каталог
 - При необходимости расширяет каталог новым кластером
 
-**remove_entry(dir_start_cluster, name)**
+### `remove_entry(dir_start_cluster, name)`
 
 - Помечает запись как удаленную
 - Не освобождает кластеры файла (это делает FileSystemCore)
 
-**update_entry(dir_start_cluster, old_name, updated_entry)**
+### `update_entry(dir_start_cluster, old_name, updated_entry)`
+
 
 - Обновляет существующую запись каталога
 - Используется при переименовании и изменении размера файла

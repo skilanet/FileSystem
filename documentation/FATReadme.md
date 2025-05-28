@@ -6,35 +6,36 @@
 
 ### Основные функции
 
-**initialize_and_flush(header)**
+### `initialize_and_flush(header)`
 
 - Создает пустую FAT таблицу при форматировании
 - Помечает корневой каталог как конец цепочки (EOF)
 
-**load(header)**
+### `load(header)`
 
 - Загружает FAT таблицу с диска в память
 
-**get_entry(cluster_idx)**
+### `get_entry(cluster_idx)`
 
 - Возвращает значение FAT записи для указанного кластера
 - Значение может быть: номер следующего кластера, EOF или FREE
 
-**set_entry(cluster_idx, value)**
+### `set_entry(cluster_idx, value)`
 
 - Устанавливает значение FAT записи и сразу сохраняет на диск
 
-**get_cluster_chain(start_cluster)**
+### `get_cluster_chain(start_cluster)`
 
 - Проходит по цепочке кластеров от начального до EOF
 - Возвращает список всех кластеров в цепочке
 
-**free_chain(start_cluster)**
+### `free_chain(start_cluster)`
 
 - Освобождает всю цепочку кластеров, начиная с указанного
 - Помечает все кластеры цепочки как FREE
 
-**append_to_chain(last_cluster, new_cluster)**
+### `append_to_chain(last_cluster, new_cluster)`
+
 
 - Добавляет новый кластер в конец существующей цепочки
 - Обновляет FAT записи для связывания кластеров

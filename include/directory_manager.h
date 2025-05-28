@@ -1,7 +1,3 @@
-//
-// Created by Sergei Filoniuk on 23/05/25.
-//
-
 #ifndef DIRECTORY_MANAGER_H
 #define DIRECTORY_MANAGER_H
 #include "bitmap_manager.h"

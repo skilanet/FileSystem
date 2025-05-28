@@ -1,7 +1,3 @@
-//
-// Created by Sergei Filoniuk on 23/05/25.
-//
-
 #ifndef FAT_MANAGER_H
 #define FAT_MANAGER_H
 

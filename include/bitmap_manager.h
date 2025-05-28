@@ -1,7 +1,3 @@
-//
-// Created by Sergei Filoniuk on 22/05/25.
-//
-
 #ifndef BITMAP_MANAGER_H
 #define BITMAP_MANAGER_H
 
